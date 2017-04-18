@@ -1,4 +1,4 @@
-function [Results] = SharedM_onlineSnapVerification
+function [Results,Middles] = SharedM_onlineSnapVerification
 % Shared Memory online snapverification, the client is responsible for 
 % receiving ROS message, writing the received data to shared memory, and 
 % distribute 6 axis jobs to 6 different workers. Each worker read data 
@@ -37,17 +37,17 @@ function [Results] = SharedM_onlineSnapVerification
 %     
     p = gcp();
 
-    f1 = parfeval(p,@SharedM_subSnapVerification,1,1,'HSA','2feafa'); % axisIndex=1
-    f2 = parfeval(p,@SharedM_subSnapVerification,1,2,'HSA','2feafa'); % axisIndex=2
-    f3 = parfeval(p,@SharedM_subSnapVerification,1,3,'HSA','2feafa'); % axisIndex=3
-    f4 = parfeval(p,@SharedM_subSnapVerification,1,4,'HSA','2feafa'); % axisIndex=4
-    f5 = parfeval(p,@SharedM_subSnapVerification,1,5,'HSA','2feafa'); % axisIndex=5
-    f6 = parfeval(p,@SharedM_subSnapVerification,1,6,'HSA','2feafa'); % axisIndex=6
+      f1 = parfeval(p,@SharedM_subSnapVerification,1,1,0.5,3,3,3,'HSA','2feafa'); % axisIndex=1
+%     f2 = parfeval(p,@SharedM_subSnapVerification,1,2,'HSA','2feafa'); % axisIndex=2
+%     f3 = parfeval(p,@SharedM_subSnapVerification,1,3,'HSA','2feafa'); % axisIndex=3
+%     f4 = parfeval(p,@SharedM_subSnapVerification,1,4,'HSA','2feafa'); % axisIndex=4
+%     f5 = parfeval(p,@SharedM_subSnapVerification,1,5,'HSA','2feafa'); % axisIndex=5
+%     f6 = parfeval(p,@SharedM_subSnapVerification,1,6,'HSA','2feafa'); % axisIndex=6
 
     while(1)
         while (localIndex==globalIndex)
             % Wait for input
-            pause(2);
+            pause(3.5);
         end
         
         drawnow;
@@ -111,25 +111,204 @@ function [Results] = SharedM_onlineSnapVerification
 
     
     Results = cell(1,6);
-%     
-    value1 = fetchOutputs(f1);
-    value2 = fetchOutputs(f2);
-    value3 = fetchOutputs(f3);
-    value4 = fetchOutputs(f4);
-    value5 = fetchOutputs(f5);
-    value6 = fetchOutputs(f6);
     
+    Results{1} = fetchOutputs(f1);
+
+    
+%     value2 = fetchOutputs(f2);
+%     Results{2} = value2;
+
+%     value3 = fetchOutputs(f3);
+%     Results{3} = value3;
+
+%     value4 = fetchOutputs(f4);
+%     Results{4} = value4;
+
+%     value5 = fetchOutputs(f5);
+%     Results{5} = value5;
+
+%     value6 = fetchOutputs(f6);
+%     Results{6} = value6;    
+    
+    
+    
+
+
+
+
+
+
     aaaatime = toc(tstart);
     fprintf('Time consuming: %f\n',aaaatime);
     fprintf('Amount of global items: %d ',globalIndex);
     fprintf('Amount of local items: %d ',localIndex);
+
+    %% Do some plot here
+    tFx = max(Wrench(:,2));   bFx = min(Wrench(:,2));
+    tFy = max(Wrench(:,3));   bFy = min(Wrench(:,3));
+    tFz = max(Wrench(:,4));   bFz = min(Wrench(:,4));
+    tMx = max(Wrench(:,5));   bMx = min(Wrench(:,5));
+    tMy = max(Wrench(:,6));   bMy = min(Wrench(:,6));
+    tMz = max(Wrench(:,7));   bMz = min(Wrench(:,7));
     
-    Results{1} = value1;
-    Results{2} = value2;
-    Results{3} = value3;
-    Results{4} = value4;
-    Results{5} = value5;
-    Results{6} = value6;
+    TL = [tFx, tFy, tFz, tMx, tMy, tMz];
+    BL = [bFx, bFy, bFz, bMx, bMy, bMz];
+    
+    pFx =subplot(3,2,1); plot(Wrench(:,1),Wrench(:,2));
+    title('Fx Plot'); xlabel('Time (secs)'); ylabel('Force (N)');
+    axis([Wrench(1,1),Wrench(globalIndex,1),bFx,tFx]);
+    
+    pFy =subplot(3,2,3); plot(Wrench(:,1),Wrench(:,3));
+    title('Fy Plot'); xlabel('Time (secs)'); ylabel('Force (N)');
+    axis([Wrench(1,1),Wrench(globalIndex,1),bFy,tFy]);
+    
+    pFz =subplot(3,2,5); plot(Wrench(:,1),Wrench(:,4));
+    title('Fz Plot'); xlabel('Time (secs)'); ylabel('Force (N)');
+    axis([Wrench(1,1),Wrench(globalIndex,1),bFz,tFz]);
+    
+    pMx =subplot(3,2,2); plot(Wrench(:,1),Wrench(:,5));
+    title('Mx Plot'); xlabel('Time (secs)'); ylabel('Moment (N-m)');
+    axis([Wrench(1,1),Wrench(globalIndex,1),bMx,tMx]);
+    
+    pMy =subplot(3,2,4); plot(Wrench(:,1),Wrench(:,6));
+    title('My Plot'); xlabel('Time (secs)'); ylabel('Moment (N-m)');
+    axis([Wrench(1,1),Wrench(globalIndex,1),bMy,tMy]);
+    
+    pMz =subplot(3,2,6); plot(Wrench(:,1),Wrench(:,7));
+    title('Mz Plot'); xlabel('Time (secs)'); ylabel('Moment (N-m)');
+    axis([Wrench(1,1),Wrench(globalIndex,1),bMz,tMz]);
+    
+    
+    Type    = [ 'Fx', 'Fy', 'Fz', 'Mx', 'My', 'Mz' ];
+    pHandle = [ pFx, pFy, pFz, pMx, pMy, pMz ];
 
+    StrategyType = 'HSA';
+    
+    for index = 1:1
+        %% Plot primitives
+        
+        [rHandle] = plotRegressionFit(Results{index}.primiData,Results{index}.primiIndex,Type(index),pHandle(index));
+    
+        %% Plot motion composites
+        [rHandle] = plotMotionCompositions(StrategyType,rHandle,TL(index),BL(index),Results{index}.MCData_cl,Results{index}.MCIndex_cl );
 
+    
+        %% Plot low level composites
+        [rHandle] = plotLowLevelBehCompositions(StrategyType,rHandle,TL(index),BL(index),Results{index}.llbehData_cl,Results{index}.llbehIndex_cl);
+    end
+    
+    
+    %% Write result to file
+    
+%     plotType        = ['Fx';'Fy';'Fz';'Mx';'My';'Mz'];
+%    
+%     for axisIndex=1:1
+%         
+%         pType           = plotType(axisIndex,:);
+%         
+%         % 1. Write segments to file
+%         SegmentFolder   = './Segments';
+%         
+%         % Check if directory exists, if not create a directory
+%         if(exist(SegmentFolder,'dir')==0)
+%             mkdir(SegmentFolder);
+%         end
+%         
+%         FileName = strcat(SegmentFolder,'/Segement_',pType,'.txt');
+%         
+%         % Open the file
+%         fid = fopen(FileName, 'a+t');	% Open/create new file 4 writing in text mode 't'
+%         for i = 1:Results{axisIndex}.primiIndex_cl
+%             % Append data to end of file.
+%             fprintf(fid, 'Iteration : %d\n',   i);
+%             fprintf(fid, 'Average   : %.5f\n', Results{axisIndex}.primiData_cl(i,1));
+%             fprintf(fid, 'Max Val   : %.5f\n', Results{axisIndex}.primiData_cl(i,2));
+%             fprintf(fid, 'Min Val   : %.5f\n', Results{axisIndex}.primiData_cl(i,3));
+%             fprintf(fid, 'Start     : %.5f\n', Results{axisIndex}.primiData_cl(i,4));
+%             fprintf(fid, 'Finish    : %.5f\n', Results{axisIndex}.primiData_cl(i,5));
+%             fprintf(fid, 'Gradient  : %.5f\n', Results{axisIndex}.primiData_cl(i,6));
+%             
+%             % Convert dLabel to a string
+%             if(ischar(Results{axisIndex}.primiData_cl(i,7)))
+%                 fprintf(fid, 'Grad Label: %s  \n', Results{axisIndex}.primiData_cl(i,7));
+%             else
+%                 dLabel = gradInt2gradLbl(Results{axisIndex}.primiData_cl(i,7));
+%                 fprintf(fid, 'Grad Label: %s  \n', dLabel);
+%                 fprintf(fid, '\n');
+%             end
+%         
+%         end
+%         
+%         fclose(fid);
+%         
+%         
+%         % 2. Write composites to file
+%         CompositeFolder   = './Composites';
+%         
+%         if(exist(CompositeFolder,'dir')==0)
+%             mkdir(CompositeFolder);
+%         end
+%         
+%         FileName = strcat(CompositeFolder,'/Composites_',pType,'.txt');
+%         
+%         % Open the file
+%         fid = fopen(FileName, 'a+t');	% Open/create new file 4 writing in text mode 't'
+%         for i = 1:Results{axisIndex}.MCIndex_cl
+%             % Append data to end of file.
+%             fprintf(fid, 'Iteration     : %d\n',   i);
+%             fprintf(fid, 'Label         : %s\n',   rt_actionInt2actionLbl(Results{axisIndex}.MCData_cl(i,1)));
+%             fprintf(fid, 'Average Val   : %.5f\n', Results{axisIndex}.MCData_cl(i,2));
+%             fprintf(fid, 'RMS Val       : %.5f\n', Results{axisIndex}.MCData_cl(i,3));
+%             fprintf(fid, 'Amplitude Val : %.5f\n', Results{axisIndex}.MCData_cl(i,4));
+%             fprintf(fid, 'Label 1       : %s\n',   gradInt2gradLbl(Results{axisIndex}.MCData_cl(i,5))); % Modified July 2012
+%             fprintf(fid, 'Label 2       : %s\n',   gradInt2gradLbl(Results{axisIndex}.MCData_cl(i,6)));
+%             fprintf(fid, 't1Start       : %.5f\n', Results{axisIndex}.MCData_cl(i,7));
+%             fprintf(fid, 't1End         : %.5f\n', Results{axisIndex}.MCData_cl(i,8));
+%             fprintf(fid, 't2Start       : %.5f\n', Results{axisIndex}.MCData_cl(i,9));
+%             fprintf(fid, 't2End         : %.5f\n', Results{axisIndex}.MCData_cl(i,10));
+%             fprintf(fid, 'tAvgIndex     : %.5f\n', Results{axisIndex}.MCData_cl(i,11));
+%             fprintf(fid, '\n');
+%             
+%         end
+%         
+%         fclose(fid);
+%         
+%         
+%         % 3. Write llbehs to file
+%         llBehaviorFolder   = './llBehaviors';
+%         
+%         if(exist(llBehaviorFolder,'dir')==0)
+%             mkdir(llBehaviorFolder);
+%         end
+%         
+%         FileName = strcat(llBehaviorFolder,'/llBehaviors_',pType,'.txt');
+%         % Open the file
+%         fid = fopen(FileName, 'a+t');	% Open/create new file 4 writing in text mode 't'
+%         
+%         for i = 1:Results{axisIndex}.llbehIndex_cl
+%             % Append data to end of file.
+%             fprintf(fid, 'Iteration     : %d\n',   i);
+%             fprintf(fid, 'llbehLabel    : %s\n',   llbInt2llbLbl(Results{axisIndex}.llbehData_cl(i,1)));
+%             fprintf(fid, 'averageVal1   : %.5f\n', Results{axisIndex}.llbehData_cl(i,2));
+%             fprintf(fid, 'averageVal2   : %.5f\n', Results{axisIndex}.llbehData_cl(i,3));
+%             fprintf(fid, 'AVG_MAG_VAL   : %.5f\n', Results{axisIndex}.llbehData_cl(i,4));
+%             fprintf(fid, 'rmsVal1       : %.5f\n', Results{axisIndex}.llbehData_cl(i,5));
+%             fprintf(fid, 'rmsVal2       : %.5f\n', Results{axisIndex}.llbehData_cl(i,6));
+%             fprintf(fid, 'AVG_RMS_Val   : %.5f\n', Results{axisIndex}.llbehData_cl(i,7));
+%             fprintf(fid, 'amplitudeVal1 : %.5f\n', Results{axisIndex}.llbehData_cl(i,8));
+%             fprintf(fid, 'amplitudeVal2 : %.5f\n', Results{axisIndex}.llbehData_cl(i,9));
+%             fprintf(fid, 'AVG_AMP_VAL   : %.5f\n', Results{axisIndex}.llbehData_cl(i,10));
+%             fprintf(fid, 'Label 1       : %s\n',   rt_actionInt2actionLbl(Results{axisIndex}.llbehData_cl(i,11)));
+%             fprintf(fid, 'Label 2       : %s\n',   rt_actionInt2actionLbl(Results{axisIndex}.llbehData_cl(i,12)));
+%             fprintf(fid, 't1Start       : %.5f\n', Results{axisIndex}.llbehData_cl(i,13));
+%             fprintf(fid, 't1End         : %.5f\n', Results{axisIndex}.llbehData_cl(i,14));
+%             fprintf(fid, 't2Start       : %.5f\n', Results{axisIndex}.llbehData_cl(i,15));
+%             fprintf(fid, 't2End         : %.5f\n', Results{axisIndex}.llbehData_cl(i,16));
+%             fprintf(fid, 'tAvgIndex     : %.5f\n', Results{axisIndex}.llbehData_cl(i,17));
+%             fprintf(fid, '\n');
+%             
+%         end
+%         
+%         fclose(fid);
+%     end
 end
