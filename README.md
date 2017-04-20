@@ -126,8 +126,8 @@ English Usage Guide
             instructions for installation.
       
     2. Install ROS package "publish_files". This package can transform file data to be real time data, and 
-        publish it to online RCBHT system. Besides, this package contains the required msg, srv, and package.xml 
-        files for RCBHT's use. 
+        publish it to online RCBHT system. Besides, this package contains the required msg, srv, and 
+        package.xml files for RCBHT's use. 
         2.1. Put folder: publish_files/ to the src folder of your ros workspace
         2.2. Run catkin_make outside src folder
         2.3. To use it, run the command: $ rosrun publish_Files force_publisher [path_of_force_file]
