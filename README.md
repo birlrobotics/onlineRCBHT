@@ -125,8 +125,8 @@ English Usage Guide
         1.2 If your matlab's version is R2016a and later versions, call roboticsAddons and follow the 
             instructions for installation.
       
-    2. Install ROS package "publish_files". This package can transform file data to be real time data, and 
-        publish it to online RCBHT system. Besides, this package contains the required msg, srv, and 
+    2. Install ROS package "publish_files". This package can transform file data to be real time data, and
+        publish it to online RCBHT system. Besides, this package contains the required msg, srv, and 
         package.xml files for RCBHT's use. 
         2.1. Put folder: publish_files/ to the src folder of your ros workspace
         2.2. Run catkin_make outside src folder
